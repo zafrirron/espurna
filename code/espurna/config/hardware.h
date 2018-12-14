@@ -172,7 +172,12 @@
     #define BUTTON1_PIN         0   // Connect a pushbutton between D3 and GND,
                                     // it's the same as using a Wemos one button shield
     #define BUTTON1_CONFIG      BUTTON_PUSHBUTTON | BUTTON_DEFAULT_HIGH
-    #define BUTTON1_RELAY       1
+    #define BUTTON1_RELAY       0
+    #define BUTTON1_CLICK       BUTTON_MODE_NONE
+    #define BUTTON1_DBLCLICK    BUTTON_MODE_NONE
+    #define BUTTON1_TRIPLECLICK BUTTON_MODE_NONE
+    #define BUTTON1_LNGCLICK    BUTTON_MODE_NONE
+    #define BUTTON1_LNGLNGCLICK BUTTON_MODE_NONE
 
     // Relays
     #define RELAY1_PIN          5
