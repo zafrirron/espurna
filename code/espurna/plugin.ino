@@ -39,6 +39,7 @@ Plugin Copyright
 #include <functional>
 #include <ESPAsyncTCP.h>
 #include <SyncClient.h>
+#include <servo.h> 
 //#include <otherPluginIncludeFiles>
 
 //*----------------------------------------------------------------------------
@@ -72,6 +73,15 @@ const String LogUri = "/Door-Bell/log";  //Simple logger service definition
 const String SonosHost = "10.0.0.155";  //Sonos Server IP
 const uint16_t SonosPort = 5005;  //Sonos service port
 const String SonosClip = "/kitchen/clip/church-3.mp3"; //Sonos Clip
+
+Servo myServo;          // create servo object to control a servo
+//int _servo_pot_pin = 0;  // analog pin used to connect the potentiometer
+int _servo_val = 90;    // set angle to servo
+int _servo_save = 90;    // manual setting save
+int _servo_dir = 1;  //direction
+unsigned int _servo_pin = SERVO_PIN;
+unsigned int _servo_inc = SERVO_INC_VALUE;
+unsigned int _servo_max = SERVO_MAX_VALUE;
 
 //*----------------------------------------------------------------------------
 //* Plugin helper functions
@@ -126,6 +136,26 @@ void _pluginFunction1() {
     //* plugin functions called from _pluginLoop()
     //* _pluginLoop() is regitered to
     //* plugin loop helper function code goes here
+
+  //_servo_val = analogRead(_servo_pot_pin);      // reads the value of the potentiometer (value between 0 and 1023)
+  /*
+  _servo_val += _servo_dir * _servo_inc;
+ 
+  if (_servo_val >= 180) {
+      //DEBUG_MSG_P(PSTR("[PLUGIN] Servo (%d)\n"),_servo_val);
+      _servo_val = _servo_max;
+      _servo_dir = -1;
+  }
+  else if (_servo_val <= 0) {
+      //DEBUG_MSG_P(PSTR("[PLUGIN] Servo (%d)\n"),_servo_val);
+      _servo_val = 0;
+      _servo_dir = 1;
+      
+  }
+  //DEBUG_MSG_P(PSTR("[PLUGIN] Servo Val=%d Dir=%d Step=%d \n"),_servo_val,_servo_dir,_servo_inc);
+  //_servo_val = map(_servo_val, 0, 1023, 0, 180);              // scale it to use it with the servo (value between 0 and 180)
+  myServo.write(_servo_val); 
+    */
 
     //* to get a sensor value for the plugin
     //*-------------------------------------
@@ -215,6 +245,8 @@ void _pluginFunction1() {
         DEBUG_MSG_P(PSTR("[PLUGIN] Gate Open requested\n"));
         logit("Gate Open");
         _gate_open = false;
+    
+        
     }
 }
 //* If frontend support needed
@@ -308,9 +340,9 @@ void _pluginFunction1() {
     //* this is API registraion to enable disable the plugin
     //* use this as template to create additional API calls for the plugin
     void _pluginSetupAPI() {
-          char key[15];
-          snprintf_P(key, sizeof(key), PSTR("%s"), API_PLUGIN_ENDPOINT);
-          apiRegister(key, 
+        char key[15];
+        snprintf_P(key, sizeof(key), PSTR("%s"), API_PLUGIN_ENDPOINT);
+        apiRegister(key, 
             [](char * buffer, size_t len) 
             {
                DEBUG_MSG_P(PSTR("[PLUGIN] received GET request at /%s \n"), API_PLUGIN_ENDPOINT);
@@ -324,14 +356,35 @@ void _pluginFunction1() {
                    DEBUG_MSG_P(PSTR("[PLUGIN] Wrong payload (%s)\n"),i);
                    return;
                }
-               _plugin_enabled = (i == 1);
-               setSetting("PLG_EN", _plugin_enabled);
-               DEBUG_MSG_P(PSTR("[PLUGIN] Set Plugin state: (%s)\n"), _plugin_enabled ? "ON" : "OFF");
             }
-            //[](const char * payload) {
-            //    DEBUG_MSG_P(PSTR("[PLUGIN] Wrong payload (%s)\n"), payload);
-            //}
+
         );
+        snprintf_P(key, sizeof(key), PSTR("%s"), API_SERVO_ENDPOINT);
+        apiRegister(key, 
+            [](char * buffer, size_t len) 
+            {
+               DEBUG_MSG_P(PSTR("[PLUGIN] received servo GET request at /%s \n"), API_SERVO_ENDPOINT);
+               snprintf_P(buffer, len, PSTR("Servo at:%d Deg\n OK"),_servo_val);
+            },
+            [](const char * payload) { 
+               int i = atoi(payload);
+               DEBUG_MSG_P(PSTR("[PLUGIN] received GET servo request at /%s: (%s) \n"), API_SERVO_ENDPOINT,payload);
+               
+                if (i < 0 || i > 180) {
+                   DEBUG_MSG_P(PSTR("[PLUGIN] Wrong servo angle (%d)\n"),i);
+                   return;
+                }
+                _servo_val = i ;
+                setSetting("SRV_D", _servo_val);
+                myServo.write(_servo_val);
+                DEBUG_MSG_P(PSTR("[PLUGIN] Servo set position: (%d)\n"), _servo_val);
+            }
+
+        );
+         
+        //[](const char * payload) {
+        //    DEBUG_MSG_P(PSTR("[PLUGIN] Wrong payload (%s)\n"), payload);
+        //}
 	}
 #endif
 
@@ -366,9 +419,9 @@ void _pluginFunction1() {
 //*-----------------------------------------
 #if TERMINAL_SUPPORT
       void _pluginInitCommands() {
-          //* Register Terminal commad to turn on/off the plugin
-          //* use this as template to create additional plugin terminal commands
-          terminalRegisterCommand(F("PLUGIN"), [](Embedis* e) {
+            //* Register Terminal commad to turn on/off the plugin
+            //* use this as template to create additional plugin terminal commands
+            terminalRegisterCommand(F("PLUGIN"), [](Embedis* e) {
                   if (e->argc == 1) {              //Got only /PLUGIN?apikey=xxxxxx query mode
                       DEBUG_MSG_P(PSTR("[PLUGIN] Status: %s\n"), _plugin_enabled ? "ON" : "OFF");
                       DEBUG_MSG_P(PSTR("Send 0/1 to enable/disable\n"));
@@ -382,6 +435,21 @@ void _pluginFunction1() {
                       DEBUG_MSG_P(PSTR("+OK\n"));
                   }
               });
+            terminalRegisterCommand(F("SERVO"), [](Embedis* e) {
+                  if (e->argc == 1) {              //Got only /SERVO?apikey=xxxxxx query mode
+                      DEBUG_MSG_P(PSTR("[SERVO] Status: %d\n"), _servo_val);
+                      DEBUG_MSG_P(PSTR("Send Deg 0-180 to set servo\n"));
+                      DEBUG_MSG_P(PSTR("+OK\n"));
+                      return;
+                  }
+                  if (e->argc > 1) {                //at least two params second param handled as value
+                      _servo_val = String(e->argv[1]).toInt();
+                      setSetting("SRV_D", _servo_val);
+                      myServo.write(_servo_val);
+                      DEBUG_MSG_P(PSTR("[SERVO] Set Position: %s\n"), _servo_val);
+                      DEBUG_MSG_P(PSTR("+OK\n"));
+                  }
+              });
 
       }
 #endif
@@ -391,15 +459,51 @@ void _pluginBroker(const String& topic, int id, unsigned int value) {
     DEBUG_MSG_P(PSTR("[PLUGIN] Broker Event :%s id:%d value:%u\n"), topic.c_str(), id, value);
     if (topic.equals(MQTT_TOPIC_BUTTON)) {
         DEBUG_MSG_P(PSTR("[PLUGIN] Button #%d - %u\n"), id, value);
-        if (id == 0 && value == 2) {
-            logit("Door Bell");
+        //if (id == 0 && value == 4) {
+        //    _servo_inc = 1;
+        //}
+        if (id == 0) {
+            if (value == 2) {           //press we move by 5 Deg
+                _servo_val += 5;
+                if (_servo_val > 180) _servo_val = 0;
+            } else if (value == 3) {       //double click 90 deg
+                if (_servo_val == 0) _servo_val = 90;
+                else if (_servo_val == 90) _servo_val = 180;
+                else _servo_val = 0;
+            } else if (value == 4) {       //long click save pos
+                _servo_save = _servo_val;
+            } else if (value == 5) {       //long long restore
+                _servo_val = _servo_save;
+            } else if (value == 6) {       //triple nothing
+                //_servo_val = 0;
+            }
+
+            myServo.write(_servo_val);
+            setSetting("SRV_D", _servo_val);
+            DEBUG_MSG_P(PSTR("[PLUGIN] Button action: Servo Val=%d\n"),_servo_val);
+
         }
+        
     } else if (topic.equals(MQTT_TOPIC_RELAY)) {
         DEBUG_MSG_P(PSTR("[PLUGIN] Relay #%d - %u\n"), id, value);
-        if (value == 1) {
-            logit("Gate On");
-        } else if (value == 0) {
-            logit("Gate Off");
+        if (value == 1) {        // Servo setting by relay on command
+            if (id == 0) {
+                _servo_val = 0;
+            } else if (id == 1) {
+                _servo_val = 90;
+            } else if (id == 2) {
+                _servo_val = 180;
+            } else if (id == 3) {
+                _servo_val += 5;
+                if (_servo_val > 180) _servo_val = 0;
+                _servo_save = _servo_val;
+            } else if (id == 4) {
+                _servo_val = _servo_save;
+            }
+            myServo.write(_servo_val);
+            setSetting("SRV_D", _servo_val);
+            DEBUG_MSG_P(PSTR("[PLUGIN] Relay action: Servo Val=%d\n"),_servo_val);
+            //myServo.write(_servo_val);
         }
     }
 }
@@ -413,9 +517,11 @@ void _pluginBroker(const String& topic, int id, unsigned int value) {
 void pluginSetup() {
     //*    plugin setup code
     //* myPluginSetup() is called by custom.h - espurna plugin entry point
-
     _plugin_enabled = getSetting("PLG_EN", 1 == PLUGIN_ENABLE);
-
+    _servo_val = getSetting("SRV_D", 90);
+    myServo.~Servo();
+    myServo.attach(_servo_pin);  // attaches the servo to the pin
+    myServo.write(_servo_val);
     //* Register plugin loop to espurna main loop
     //*------------------------------------------
     espurnaRegisterLoop(_pluginLoop);
@@ -464,9 +570,14 @@ void _pluginLoop() {
 
     //* if plugin disabled dont run the coded
     if (!_plugin_enabled) return;
-
-    //* here call all plugin loop functions (copy sumple function as needed)
-    _pluginFunction1();
+    
+    //* run plugin loop function every PLUGIN_RUN_EVERY mili
+    if (millis() - _last_run > PLUGIN_RUN_EVERY || PLUGIN_RUN_EVERY == 0) {
+        _last_run = millis();
+        //DEBUG_MSG_P(PSTR("- called every second!"));
+        //* here call all plugin loop functions (copy sumple function as needed)
+        _pluginFunction1();
+    }
 }
 
 //*----------------------------------------------------------------------------

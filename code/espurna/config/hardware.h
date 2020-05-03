@@ -173,7 +173,7 @@
                                     // it's the same as using a Wemos one button shield
     #define BUTTON1_CONFIG      BUTTON_PUSHBUTTON | BUTTON_DEFAULT_HIGH
     #define BUTTON1_RELAY       0
-    #define BUTTON1_CLICK       BUTTON_MODE_NONE
+    #define BUTTON1_CLICK       BUTTON_MODE_ON
     #define BUTTON1_DBLCLICK    BUTTON_MODE_NONE
     #define BUTTON1_TRIPLECLICK BUTTON_MODE_NONE
     #define BUTTON1_LNGCLICK    BUTTON_MODE_NONE
@@ -182,6 +182,18 @@
     // Relays
     #define RELAY1_PIN          5
     #define RELAY1_TYPE         RELAY_TYPE_NORMAL
+
+    #define RELAY2_PIN          5
+    #define RELAY2_TYPE         RELAY_TYPE_NORMAL
+
+    #define RELAY3_PIN          5
+    #define RELAY3_TYPE         RELAY_TYPE_NORMAL
+
+    #define RELAY4_PIN          5
+    #define RELAY4_TYPE         RELAY_TYPE_NORMAL
+
+    #define RELAY5_PIN          5
+    #define RELAY5_TYPE         RELAY_TYPE_NORMAL
 
     // LED
     #define LED1_PIN            2
