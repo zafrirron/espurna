@@ -73,7 +73,7 @@
 //* Plugin integation point
 #if USE_EXTRA
     //* include the plugin header (plugin entry point)
-    #if INCLUDE_PLUGIN1
+    #if INCLUDE_PLUGIN
         #include <plugin.h>
     #endif
 
@@ -84,7 +84,7 @@
         //* extraSetup is called by espurna.ino (depended on USE_EXTRA flag)
         //* This is a single entry point to the plugin code
         //* Call the plugin setup function
-        #if INCLUDE_PLUGIN1
+        #if INCLUDE_PLUGIN
             pluginSetup();
         #endif
     }
