@@ -1,18 +1,21 @@
 // -----------------------------------------------------------------------------
 // V9261F based power monitor
-// Copyright (C) 2017-2018 by Xose Pérez <xose dot perez at gmail dot com>
+// Copyright (C) 2017-2019 by Xose Pérez <xose dot perez at gmail dot com>
 // -----------------------------------------------------------------------------
 
 #if SENSOR_SUPPORT && V9261F_SUPPORT
 
 #pragma once
 
-#include "Arduino.h"
-#include "BaseSensor.h"
-
+#include <Arduino.h>
 #include <SoftwareSerial.h>
 
-class V9261FSensor : public BaseSensor {
+#include "BaseEmonSensor.h"
+extern "C" {
+    #include "../libs/fs_math.h"
+}
+
+class V9261FSensor : public BaseEmonSensor {
 
     public:
 
@@ -20,7 +23,7 @@ class V9261FSensor : public BaseSensor {
         // Public
         // ---------------------------------------------------------------------
 
-        V9261FSensor(): BaseSensor(), _data() {
+        V9261FSensor(): _data() {
             _count = 6;
             _sensor_id = SENSOR_V9261F_ID;
         }
@@ -103,6 +106,7 @@ class V9261FSensor : public BaseSensor {
             if (index == 3) return MAGNITUDE_POWER_REACTIVE;
             if (index == 4) return MAGNITUDE_POWER_APPARENT;
             if (index == 5) return MAGNITUDE_POWER_FACTOR;
+            if (index == 6) return MAGNITUDE_ENERGY;
             return MAGNITUDE_NONE;
         }
 
@@ -114,6 +118,7 @@ class V9261FSensor : public BaseSensor {
             if (index == 3) return _reactive;
             if (index == 4) return _apparent;
             if (index == 5) return _apparent > 0 ? 100 * _active / _apparent : 100;
+            if (index == 6) return _energy[0].asDouble();
             return 0;
         }
 
@@ -127,6 +132,7 @@ class V9261FSensor : public BaseSensor {
 
             static unsigned char state = 0;
             static unsigned long last = 0;
+            static unsigned long ts = 0;
             static bool found = false;
             static unsigned char index = 0;
 
@@ -135,10 +141,10 @@ class V9261FSensor : public BaseSensor {
                 while (_serial->available()) {
                     _serial->flush();
                     found = true;
-                    last = millis();
+                    ts = millis();
                 }
 
-                if (found && (millis() - last > V9261F_SYNC_INTERVAL)) {
+                if (found && (millis() - ts > V9261F_SYNC_INTERVAL)) {
                     _serial->flush();
                     index = 0;
                     state = 1;
@@ -161,7 +167,7 @@ class V9261FSensor : public BaseSensor {
                     _data[index] = _serial->read();
                     if (index++ >= 19) {
                         _serial->flush();
-                        last = millis();
+                        ts = millis();
                         state = 3;
                     }
                 }
@@ -203,11 +209,18 @@ class V9261FSensor : public BaseSensor {
                     if (_voltage < 0) _voltage = 0;
                     if (_current < 0) _current = 0;
 
-                    _apparent = sqrt(_reactive * _reactive + _active * _active);
+                    _apparent = fs_sqrt(_reactive * _reactive + _active * _active);
+
+                    if (last > 0) {
+                        _energy[0] += sensor::Ws {
+                            static_cast<uint32_t>(_active * (millis() / last) / 1000)
+                        };
+                    }
+                    last = millis();
 
                 }
 
-                last = millis();
+                ts = millis();
                 index = 0;
                 state = 4;
 
@@ -215,10 +228,10 @@ class V9261FSensor : public BaseSensor {
 
                 while (_serial->available()) {
                     _serial->flush();
-                    last = millis();
+                    ts = millis();
                 }
 
-                if (millis() - last > V9261F_SYNC_INTERVAL) {
+                if (millis() - ts > V9261F_SYNC_INTERVAL) {
                     state = 1;
                 }
 

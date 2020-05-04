@@ -19,21 +19,24 @@
 
 */
 
+#pragma once
+
+#include <Arduino.h>
+#include <core_version.h>
+#include <pgmspace.h>
+
 #ifdef USE_CUSTOM_H
 #include "custom.h"
 #endif
 
+#include "buildtime.h"
 #include "version.h"
 #include "types.h"
 #include "arduino.h"
 #include "hardware.h"
-#include "defaults.h"
 #include "general.h"
-#include "prototypes.h"
-#include "sensors.h"
-#include "progmem.h"
+#include "defaults.h"
+#include "deprecated.h"
 #include "dependencies.h"
-
-#ifdef USE_CORE_VERSION_H
-#include "core_version.h"
-#endif
+#include "sensors.h"
+#include "webui.h"
