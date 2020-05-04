@@ -33,22 +33,22 @@
 #define DUMMY_RELAY_COUNT       1
 
 // Buttons
-#define BUTTON1_PIN         	  3
-#define BUTTON1_RELAY       	  1
-#define BUTTON1_MODE        	  BUTTON_SWITCH
-#define BUTTON1_CLICK      	    BUTTON_MODE_TOGGLE
-#define BUTTON_DBLCLICK_DELAY   500
-#define BUTTON_LNGCLICK_CNT     5
-#define BUTTON_LNGLNGCLICK_CNT  10
-#define BUTTON1_DBLCLICK        BUTTON_MODE_AP
-#define BUTTON1_LNGCLICK    	  BUTTON_MODE_RESET
-#define BUTTON1_LNGLNGCLICK 	  BUTTON_MODE_FACTORY
+#define BUTTON1_PIN         	    3
+#define BUTTON1_RELAY       	    1
+#define BUTTON1_MODE        	    BUTTON_SWITCH
+#define BUTTON1_CLICK      	        BUTTON_MODE_TOGGLE
+#define BUTTON_DBLCLICK_DELAY       500
+#define BUTTON_LNGCLICK_CNT         5
+#define BUTTON_LNGLNGCLICK_CNT      10
+#define BUTTON1_DBLCLICK            BUTTON_MODE_AP
+#define BUTTON1_LNGCLICK    	    BUTTON_MODE_RESET
+#define BUTTON1_LNGLNGCLICK 	    BUTTON_MODE_FACTORY
 
 // LEDs
 #define LED1_PIN            	1
 #define LED1_MODE            	LED_MODE_RELAY
 #define LED1_PIN_INVERSE    	0
-#define LED1_RELAY            1
+#define LED1_RELAY              1
 
 // -----------------------------------------------------------------------------
 // Plugin integration strt here
@@ -63,21 +63,18 @@
 
 //* Include flags include the plugins code in the image
 //* The plugin can be enabled/diabled in run time (API + TERMINAL commands)
-#define INCLUDE_PLUGIN1      0
-#define INCLUDE_PLUGIN2      0
+#define INCLUDE_PLUGIN        0
+
 
 //* USE_EXTRA is espurna 3rd party code integration hook
 //* flag is used by espurna.ino to call extraSetup() function
-#define USE_EXTRA            INCLUDE_PLUGIN1 || INCLUDE_PLUGIN2
+#define USE_EXTRA            INCLUDE_PLUGIN
 
 //* Plugin integation point
 #if USE_EXTRA
     //* include the plugin header (plugin entry point)
     #if INCLUDE_PLUGIN1
-        #include <plugin1.h>
-    #endif
-    #if INCLUDE_PLUGIN2
-        #include <plugin2.h>
+        #include <plugin.h>
     #endif
 
     //* Declare espurna calling function
@@ -88,10 +85,7 @@
         //* This is a single entry point to the plugin code
         //* Call the plugin setup function
         #if INCLUDE_PLUGIN1
-            plugin1Setup();
-        #endif
-        #if INCLUDE_PLUGIN2
-            plugin2Setup();
+            pluginSetup();
         #endif
     }
 #endif
